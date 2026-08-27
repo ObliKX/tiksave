@@ -179,15 +179,14 @@ async function downloadVideo(videoUrl) {
     quality = 'HD (Mock)';
   }
 
-  // If running in Netlify (serverless environment), return a signed stateless URL
-  if (process.env.NETLIFY) {
-    console.log(`[VideoService] Netlify detected. Generating stateless secure download link.`);
-    const downloadUrl = generateSignedUrl(directVideoUrl, title);
+  // If running in Netlify (serverless environment), return a stateless URL via Edge Function
+  if (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    console.log(`[VideoService] Netlify detected. Generating stateless Edge Function download link.`);
     return {
       success: true,
       title: title,
       quality: quality,
-      downloadUrl: downloadUrl
+      downloadUrl: `/api/proxy-download?url=${encodeURIComponent(directVideoUrl)}`
     };
   }
 
