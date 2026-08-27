@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikSave - Download TikTok Videos in HD</title>
+  <meta name="description" content="A simple, fast, and secure personal-use video downloader for TikTok. Save your own TikTok videos in HD quality without advertisements.">
+  
+  <!-- Modern sleek typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Link -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="bg-glow bg-glow-left"></div>
+  <div class="bg-glow bg-glow-right"></div>
+
+  <div class="app-container">
+    <header class="app-header">
+      <div class="logo-container">
+        <!-- Modern SVG logo representing a saved download checkmark / circular dynamic icon -->
+        <svg class="app-logo" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        <span class="logo-text">Tik<span class="logo-highlight">Save</span></span>
+      </div>
+      <p class="subtitle">Download your videos in HD</p>
+    </header>
+
+    <main class="main-content">
+      <!-- Input Card Section -->
+      <section class="glass-card input-card" id="search-section">
+        <form id="downloader-form" novalidate>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <!-- Link Icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </span>
+            <input 
+              type="url" 
+              id="tiktok-url" 
+              placeholder="Paste TikTok video link..." 
+              required 
+              autocomplete="off"
+            >
+            <button type="button" class="btn-paste" id="btn-paste" title="Paste from clipboard">
+              Paste
+            </button>
+          </div>
+          
+          <button type="submit" class="btn-submit" id="btn-download">
+            <span class="btn-text">Download Video</span>
+            <span class="btn-glow-layer"></span>
+          </button>
+        </form>
+
+        <div class="features-line">
+          <span class="feature-item">Fast</span>
+          <span class="feature-divider">•</span>
+          <span class="feature-item">Simple</span>
+          <span class="feature-divider">•</span>
+          <span class="feature-item">No ads</span>
+        </div>
+      </section>
+
+      <!-- Status/Processing Section (Hidden by default) -->
+      <section class="glass-card status-card hidden" id="status-section">
+        <div class="spinner-container">
+          <div class="loader-ring"></div>
+          <div class="loader-core"></div>
+        </div>
+        <p class="status-msg" id="status-message">Processing video...</p>
+      </section>
+
+      <!-- Error Alert Section (Hidden by default) -->
+      <section class="error-banner hidden" id="error-section">
+        <div class="error-content">
+          <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span class="error-text" id="error-message">Unable to process this video.</span>
+        </div>
+        <button type="button" class="btn-close-error" id="btn-close-error" aria-label="Close error message">
+          &times;
+        </button>
+      </section>
+
+      <!-- Result Card Section (Hidden by default) -->
+      <section class="glass-card result-card hidden" id="result-section">
+        <div class="result-header">
+          <div class="video-info">
+            <h2 class="video-title" id="result-title">TikTok Video Description</h2>
+            <div class="badge-row">
+              <span class="badge" id="result-quality">HD</span>
+              <span class="badge badge-success">Ready</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="preview-container">
+          <video id="video-preview" controls preload="metadata" playsinline></video>
+        </div>
+
+        <div class="action-row">
+          <a href="#" class="btn-submit btn-action-download" id="btn-file-download" download>
+            <svg class="icon-download" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download HD
+          </a>
+          <button type="button" class="btn-secondary" id="btn-reset">
+            Download Another Video
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p class="footer-terms">This tool is for personal use only. Please ensure you have permission to download the content.</p>
+      <p class="copyright">&copy; 2026 TikSave. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <!-- JavaScript Link -->
+  <script src="app.js"></script>
+</body>
+</html>
