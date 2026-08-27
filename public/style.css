@@ -677,3 +677,37 @@ body {
     font-size: 1rem;
   }
 }
+/* iPhone CTA */
+.iphone-cta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-top: 10px;
+}
+.iphone-cta svg {
+  width: 28px;
+  height: 28px;
+  color: var(--text-muted);
+}
+.cta-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.cta-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.cta-desc a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+.cta-desc a:hover {
+  text-decoration: underline;
+}

@@ -4,6 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const downloadRoutes = require('./routes/download');
+const shortcutRoutes = require('./routes/shortcut');
 const { startCleanupScheduler } = require('./utils/cleanup');
 
 const app = express();
@@ -34,6 +35,11 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // 4. API Routes
 app.use('/api', downloadRoutes);
+app.use('/api/shortcut', shortcutRoutes);
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 // Fallback for single page app routing
 app.get('*', (req, res) => {

@@ -18,17 +18,22 @@ const activeDownloads = new Map();
 const SERVER_SECRET = process.env.SERVER_SECRET || crypto.randomBytes(32).toString('hex');
 
 /**
- * Generates a signed, stateless download URL.
+ * Generates a signed, short-lived download token for the Edge Function proxy.
  */
-function generateSignedUrl(directUrl, title) {
-  const sanitizedTitle = sanitizeFilename(title);
-  const payload = `${directUrl}|${sanitizedTitle}`;
+function generateSignedUrl(directUrl) {
+  // Token expires in 120 seconds (2 minutes)
+  const payloadObj = {
+    u: directUrl,
+    e: Date.now() + 120 * 1000
+  };
+  
+  // Base64URL encode the JSON payload
+  const payload = Buffer.from(JSON.stringify(payloadObj)).toString('base64url');
+  
+  // Sign the payload
   const signature = crypto.createHmac('sha256', SERVER_SECRET).update(payload).digest('hex');
   
-  const base64Url = Buffer.from(directUrl).toString('base64url');
-  const base64Title = Buffer.from(sanitizedTitle).toString('base64url');
-  
-  return `/api/file/secure?u=${base64Url}&t=${base64Title}&s=${signature}`;
+  return `/api/proxy-download?p=${payload}&s=${signature}`;
 }
 
 /**
@@ -218,14 +223,14 @@ async function downloadVideo(videoUrl) {
 
   // If running in Netlify (serverless environment), return a stateless URL via Edge Function
   if (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    console.log(`[VideoService] Netlify detected. Generating stateless Edge Function download link.`);
+    console.log(`[VideoService] Netlify detected. Generating stateless secure Edge Function download link.`);
     return {
       success: true,
       title: title,
       quality: quality,
       author: author,
       stats: stats,
-      downloadUrl: `/api/proxy-download?url=${encodeURIComponent(directVideoUrl)}`
+      downloadUrl: generateSignedUrl(directVideoUrl)
     };
   }
 
