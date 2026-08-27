@@ -94,41 +94,11 @@ router.get('/file/secure', async (req, res) => {
       }
     }
 
-    console.log(`[Proxy] Streaming video stateless-ly: ${directUrl}`);
+    console.log(`[Proxy] Redirecting video stateless-ly to avoid 6MB Lambda limit: ${directUrl}`);
 
-    // 5. Stream the video file on-the-fly to the browser
-    const response = await axios({
-      method: 'get',
-      url: directUrl,
-      responseType: 'stream',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    });
-
-    // Set download headers
-    res.setHeader('Content-Type', response.headers['content-type'] || 'video/mp4');
-    if (response.headers['content-length']) {
-      res.setHeader('Content-Length', response.headers['content-length']);
-    }
-    
-    // Sanitize filename encoding for Content-Disposition header
-    const downloadName = `${title}.mp4`;
-    const safeFilename = encodeURIComponent(downloadName).replace(/['()]/g, escape);
-    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"; filename*=UTF-8''${safeFilename}`);
-
-    // Pipe the response stream
-    response.data.pipe(res);
-
-    response.data.on('error', (streamErr) => {
-      console.error('[Proxy] Stream error:', streamErr.message);
-      if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          error: 'Error streaming video file data.'
-        });
-      }
-    });
+    // 5. Redirect the browser to the TikTok CDN directly.
+    // This bypasses the 6MB synchronous response limit on AWS Lambda (Netlify Functions)
+    return res.redirect(302, directUrl);
 
   } catch (err) {
     console.error('[Proxy] Error resolving secure stream:', err.message);
