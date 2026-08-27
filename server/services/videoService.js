@@ -107,6 +107,8 @@ async function downloadVideo(videoUrl) {
   let title = 'TikTok Video';
   let directVideoUrl = '';
   let quality = 'HD';
+  let author = { nickname: 'Unknown', unique_id: 'user', avatar: '' };
+  let stats = { plays: 0, likes: 0, comments: 0, shares: 0 };
 
   // 2. Execute Provider Logic
   if (provider === 'tikwm') {
@@ -136,6 +138,22 @@ async function downloadVideo(videoUrl) {
       const info = resData.data;
       title = info.title || `TikTok Video by @${info.author?.unique_id || 'user'}`;
       directVideoUrl = info.hdplay || info.play;
+      
+      if (info.author) {
+        author = {
+          nickname: info.author.nickname || 'Unknown',
+          unique_id: info.author.unique_id || 'user',
+          avatar: info.author.avatar || ''
+        };
+      }
+      
+      stats = {
+        plays: info.play_count || 0,
+        likes: info.digg_count || 0,
+        comments: info.comment_count || 0,
+        shares: info.share_count || 0
+      };
+
       if (!directVideoUrl) {
         throw new Error('No download links returned by TikWM');
       }
@@ -155,6 +173,23 @@ async function downloadVideo(videoUrl) {
 
       const info = result.result;
       title = info.description || 'TikTok Scraped Video';
+      
+      if (info.author) {
+        author = {
+          nickname: info.author.nickname || 'Unknown',
+          unique_id: info.author.username || info.author.unique_id || 'user',
+          avatar: info.author.avatar || ''
+        };
+      }
+      
+      if (info.statistics) {
+        stats = {
+          plays: info.statistics.playCount || 0,
+          likes: info.statistics.diggCount || 0,
+          comments: info.statistics.commentCount || 0,
+          shares: info.statistics.shareCount || 0
+        };
+      }
       
       if (info.video && Array.isArray(info.video) && info.video.length > 0) {
         directVideoUrl = info.video[0];
@@ -177,6 +212,8 @@ async function downloadVideo(videoUrl) {
     directVideoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
     title = 'Mock Test Video (Big Buck Bunny)';
     quality = 'HD (Mock)';
+    author = { nickname: 'Blender Foundation', unique_id: 'blender', avatar: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Blender_logo_no_text.svg/512px-Blender_logo_no_text.svg.png' };
+    stats = { plays: 1000000, likes: 50000, comments: 200, shares: 1000 };
   }
 
   // If running in Netlify (serverless environment), return a stateless URL via Edge Function
@@ -186,6 +223,8 @@ async function downloadVideo(videoUrl) {
       success: true,
       title: title,
       quality: quality,
+      author: author,
+      stats: stats,
       downloadUrl: `/api/proxy-download?url=${encodeURIComponent(directVideoUrl)}`
     };
   }
@@ -206,6 +245,8 @@ async function downloadVideo(videoUrl) {
     success: true,
     title: title,
     quality: quality,
+    author: author,
+    stats: stats,
     downloadUrl: `/api/file/${fileId}`
   };
 }

@@ -95,6 +95,27 @@ document.addEventListener('DOMContentLoaded', () => {
         resultTitle.textContent = data.title || 'TikTok Video';
         resultQuality.textContent = data.quality || 'HD';
         
+        // Load author info
+        if (data.author) {
+          document.getElementById('author-avatar').src = data.author.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.author.nickname || 'User') + '&background=000&color=fff';
+          document.getElementById('author-nickname').textContent = data.author.nickname || 'Unknown User';
+          document.getElementById('author-username').textContent = '@' + (data.author.unique_id || 'user');
+        }
+        
+        // Load stats with a formatter
+        const formatStat = (num) => {
+          if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+          if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+          return num;
+        };
+        
+        if (data.stats) {
+          document.getElementById('stat-plays').textContent = formatStat(data.stats.plays || 0);
+          document.getElementById('stat-likes').textContent = formatStat(data.stats.likes || 0);
+          document.getElementById('stat-comments').textContent = formatStat(data.stats.comments || 0);
+          document.getElementById('stat-shares').textContent = formatStat(data.stats.shares || 0);
+        }
+        
         // Point preview and download button to the server file link
         videoPreview.src = data.downloadUrl;
         btnFileDownload.href = data.downloadUrl;
