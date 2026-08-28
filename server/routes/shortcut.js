@@ -7,16 +7,11 @@ const fs = require('fs');
 const { resolveAndValidateUrl } = require('../utils/validateUrl');
 const { downloadVideo, activeDownloads } = require('../services/videoService');
 
-// In-memory duplicate protection cache (URL Hash -> Timestamp)
 const recentRequests = new Map();
-const RATE_LIMIT_WINDOW_MS = 10000; // 10 seconds
+const RATE_LIMIT_WINDOW_MS = 10000; 
 
-/**
- * POST /api/shortcut/download
- * Dedicated endpoint for Apple Shortcuts iPhone integration
- */
 router.post('/download', async (req, res) => {
-  // 1. Authentication
+
   const authHeader = req.headers.authorization;
   const expectedKey = process.env.SHORTCUT_API_KEY;
 
@@ -35,39 +30,31 @@ router.post('/download', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Please provide a valid TikTok video URL.' });
   }
 
-  // 2. Duplicate Protection / Rate Limiting
   const urlHash = crypto.createHash('md5').update(url.trim()).digest('hex');
   const lastRequestTime = recentRequests.get(urlHash);
 
   if (lastRequestTime && (Date.now() - lastRequestTime) < RATE_LIMIT_WINDOW_MS) {
     return res.status(429).json({ success: false, error: 'Too many requests. Please wait a moment before downloading the same video again.' });
   }
-  
+
   recentRequests.set(urlHash, Date.now());
 
   try {
-    // 3. Resolve and validate the URL
+
     const resolvedUrl = await resolveAndValidateUrl(url.trim());
 
-    // 4. Download video
     const result = await downloadVideo(resolvedUrl);
 
     if (!result.success) {
       return res.status(500).json({ success: false, error: 'Failed to process video.' });
     }
 
-    // 5. Respond
-    // For serverless (Netlify), result.downloadUrl is the signed Edge Function proxy URL.
-    // For local mode, result.downloadUrl is the local /api/file/:id route.
-    // Apple Shortcuts transparently follows 302 redirects, so we can redirect to the final delivery endpoint!
-    
     console.log(`[Shortcut API] Success. Redirecting Shortcut to final payload: ${result.downloadUrl}`);
     return res.redirect(302, result.downloadUrl);
 
   } catch (error) {
     console.error('[Shortcut API] Error processing video request:', error.message);
-    
-    // Clean up duplicate cache on error so they can try again immediately
+
     recentRequests.delete(urlHash);
 
     if (error.message.includes('CONFIG_ERROR')) {
@@ -84,7 +71,6 @@ router.post('/download', async (req, res) => {
   }
 });
 
-// Periodic cleanup of recentRequests map
 setInterval(() => {
   const now = Date.now();
   for (const [hash, timestamp] of recentRequests.entries()) {
@@ -94,14 +80,6 @@ setInterval(() => {
   }
 }, 60000).unref();
 
-/**
- * GET /api/shortcut/install
- * Generates and serves a pre-configured Apple Shortcut (.shortcut) plist file.
- * The shortcut is ready to install — no manual configuration needed on the iPhone.
- *
- * Query params:
- *   ?key=YOUR_API_KEY   The SHORTCUT_API_KEY to bake into the shortcut file.
- */
 router.get('/install', (req, res) => {
   const { key } = req.query;
 
@@ -112,19 +90,15 @@ router.get('/install', (req, res) => {
     });
   }
 
-  // Auto-detect the public URL of this server from the request headers.
-  // On Netlify, x-forwarded-proto and x-forwarded-host are set correctly.
   const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
   const apiUrl = `${protocol}://${host}/api/shortcut/download`;
 
-  // Generate stable UUIDs for each action so variable references work correctly
   const clipboardUUID = randomUUID().toUpperCase();
   const urlActionUUID = randomUUID().toUpperCase();
   const saveUUID = randomUUID().toUpperCase();
   const notifUUID = randomUUID().toUpperCase();
 
-  // Escape XML special characters to prevent plist injection
   const esc = (s) => s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -134,9 +108,6 @@ router.get('/install', (req, res) => {
   const safeKey = esc(`Bearer ${key.trim()}`);
   const safeUrl = esc(apiUrl);
 
-  // Build the Apple Shortcut as an XML Property List.
-  // The &#xFFFC; character (U+FFFC, Object Replacement Character) is used by Apple
-  // Shortcuts as a placeholder for variable tokens inside text strings.
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

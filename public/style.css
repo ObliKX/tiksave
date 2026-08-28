@@ -1,29 +1,26 @@
-/* CSS Reset & Variables */
 :root {
   --bg-dark: #0b0d17;
   --card-bg: rgba(22, 26, 45, 0.45);
   --card-border: rgba(255, 255, 255, 0.07);
-  --primary: #ff0055;       /* Neon TikTok Pink/Red */
-  --secondary: #00f2fe;     /* Neon Cyan */
-  --accent-purple: #7000ff; /* Deep Indigo Glow */
+  --primary: #ffffff;       
+  --secondary: #dddddd;     
+  --accent-purple: #bbbbbb; 
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --error-bg: rgba(239, 68, 68, 0.15);
-  --error-border: rgba(239, 68, 68, 0.3);
-  --error-text: #fca5a5;
-  --success-bg: rgba(16, 185, 129, 0.15);
-  --success-border: rgba(16, 185, 129, 0.3);
-  --success-text: #6ee7b7;
+  --error-bg: rgba(255, 255, 255, 0.05);
+  --error-border: rgba(255, 255, 255, 0.2);
+  --error-text: #ffffff;
+  --success-bg: rgba(255, 255, 255, 0.05);
+  --success-border: rgba(255, 255, 255, 0.2);
+  --success-text: #ffffff;
   --font-heading: 'Outfit', sans-serif;
   --font-body: 'Inter', sans-serif;
 }
-
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
-
 body {
   background-color: var(--bg-dark);
   color: var(--text-main);
@@ -36,32 +33,6 @@ body {
   overflow-x: hidden;
   padding: 20px;
 }
-
-/* Ambient Neon Glow Backdrops */
-.bg-glow {
-  position: absolute;
-  width: 40vw;
-  height: 40vw;
-  border-radius: 50%;
-  filter: blur(140px);
-  z-index: 0;
-  opacity: 0.15;
-  pointer-events: none;
-}
-
-.bg-glow-left {
-  background: var(--primary);
-  top: -10%;
-  left: -10%;
-}
-
-.bg-glow-right {
-  background: var(--secondary);
-  bottom: -10%;
-  right: -10%;
-}
-
-/* Main Container Layout */
 .app-container {
   width: 100%;
   max-width: 680px;
@@ -71,42 +42,34 @@ body {
   z-index: 1;
   position: relative;
 }
-
-/* Header Styling */
 .app-header {
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .logo-container {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
 }
-
 .app-logo {
   width: 40px;
   height: 40px;
   color: var(--primary);
-  filter: drop-shadow(0 0 8px rgba(255, 0, 85, 0.5));
+  filter: none;
 }
-
 .logo-text {
   font-family: var(--font-heading);
   font-weight: 800;
   font-size: 2.5rem;
   letter-spacing: -1px;
 }
-
 .logo-highlight {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: #ffffff;
+  color: #000000;
 }
-
 .subtitle {
   font-family: var(--font-heading);
   font-size: 1.15rem;
@@ -114,15 +77,11 @@ body {
   color: var(--text-muted);
   letter-spacing: 0.5px;
 }
-
-/* Main Content Wrapper */
 .main-content {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
-
-/* Glassmorphism Cards */
 .glass-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -130,22 +89,18 @@ body {
   -webkit-backdrop-filter: blur(16px);
   border-radius: 24px;
   padding: 32px;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
   transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
-
 .glass-card:hover {
   border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 35px -8px rgba(0, 0, 0, 0.6);
+  box-shadow: none;
 }
-
-/* Form & Input Section */
 #downloader-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
-
 .input-wrapper {
   position: relative;
   display: flex;
@@ -156,12 +111,10 @@ body {
   padding: 6px 6px 6px 16px;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
-
 .input-wrapper:focus-within {
   border-color: rgba(0, 242, 254, 0.4);
-  box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+  box-shadow: none;
 }
-
 .input-icon {
   display: flex;
   align-items: center;
@@ -172,12 +125,10 @@ body {
   margin-right: 12px;
   pointer-events: none;
 }
-
 .input-icon svg {
   width: 20px;
   height: 20px;
 }
-
 #tiktok-url {
   flex: 1;
   background: transparent;
@@ -189,12 +140,10 @@ body {
   padding: 8px 0;
   width: 100%;
 }
-
 #tiktok-url::placeholder {
   color: var(--text-muted);
   opacity: 0.6;
 }
-
 .btn-paste {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -208,78 +157,45 @@ body {
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
-
 .btn-paste:hover {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.2);
 }
-
 .btn-paste:active {
   transform: scale(0.98);
 }
-
-/* Call To Action Download Buttons */
-.btn-submit {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  width: 100%;
-  padding: 16px 28px;
-  background: linear-gradient(135deg, var(--primary), var(--accent-purple));
-  border: none;
-  outline: none;
-  border-radius: 16px;
-  color: white;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.3s ease;
-  box-shadow: 0 4px 20px rgba(255, 0, 85, 0.3);
-}
-
+.btn-submit { background: #ffffff; color: #000000;}
 .btn-submit:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(255, 0, 85, 0.5), 0 0 10px rgba(112, 0, 255, 0.3);
+  box-shadow: none;
 }
-
 .btn-submit:active {
   transform: translateY(0) scale(0.99);
 }
-
 .btn-submit:disabled {
   background: #334155 !important;
   color: #64748b !important;
-  box-shadow: none !important;
+  box-shadow: none;
   cursor: not-allowed;
   transform: none !important;
 }
-
-/* Button Glow Effects */
 .btn-glow-layer {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  background: #ffffff;
   transform: translateX(-100%);
 }
-
 .btn-submit:hover .btn-glow-layer {
   animation: shine 1.5s infinite;
 }
-
 @keyframes shine {
   100% {
     transform: translateX(100%);
   }
 }
-
-/* Feature Badge Line */
 .features-line {
   display: flex;
   align-items: center;
@@ -287,20 +203,16 @@ body {
   gap: 16px;
   margin-top: 24px;
 }
-
 .feature-item {
   font-size: 0.85rem;
   color: var(--text-muted);
   font-weight: 500;
   letter-spacing: 0.5px;
 }
-
 .feature-divider {
   color: rgba(255, 255, 255, 0.1);
   font-size: 0.8rem;
 }
-
-/* Loading Card */
 .status-card {
   display: flex;
   flex-direction: column;
@@ -309,13 +221,11 @@ body {
   gap: 20px;
   animation: fadeIn 0.3s ease forwards;
 }
-
 .spinner-container {
   position: relative;
   width: 56px;
   height: 56px;
 }
-
 .loader-ring {
   width: 100%;
   height: 100%;
@@ -325,7 +235,6 @@ body {
   border-radius: 50%;
   animation: spin 1s cubic-bezier(0.53, 0.21, 0.29, 0.83) infinite;
 }
-
 .loader-core {
   position: absolute;
   top: 12px;
@@ -338,27 +247,22 @@ body {
   border-radius: 50%;
   animation: spinReverse 1.4s ease-in-out infinite;
 }
-
 .status-msg {
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-muted);
   letter-spacing: 0.5px;
 }
-
 @keyframes spin {
   100% {
     transform: rotate(360deg);
   }
 }
-
 @keyframes spinReverse {
   100% {
     transform: rotate(-360deg);
   }
 }
-
-/* Error Alert Banner */
 .error-banner {
   background: var(--error-bg);
   border: 1px solid var(--error-border);
@@ -370,28 +274,24 @@ body {
   gap: 16px;
   animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-
 .error-content {
   display: flex;
   align-items: center;
   gap: 12px;
   flex: 1;
 }
-
 .error-icon {
   width: 22px;
   height: 22px;
   color: #f87171;
   flex-shrink: 0;
 }
-
 .error-text {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--error-text);
   line-height: 1.4;
 }
-
 .btn-close-error {
   background: transparent;
   border: none;
@@ -403,25 +303,20 @@ body {
   opacity: 0.7;
   transition: opacity 0.2s ease;
 }
-
 .btn-close-error:hover {
   opacity: 1;
 }
-
-/* Result Card Styling */
 .result-card {
   display: flex;
   flex-direction: column;
   gap: 24px;
   animation: fadeIn 0.4s ease forwards;
 }
-
 .result-header {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-
 .video-title {
   font-family: var(--font-heading);
   font-size: 1.25rem;
@@ -430,12 +325,10 @@ body {
   word-break: break-word;
   color: var(--text-main);
 }
-
 .badge-row {
   display: flex;
   gap: 8px;
 }
-
 .badge {
   font-size: 0.75rem;
   font-weight: 700;
@@ -446,14 +339,11 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
 }
-
 .badge-success {
   background: var(--success-bg);
   color: var(--success-text);
   border: 1px solid var(--success-border);
 }
-
-/* Video Preview Player */
 .preview-container {
   width: 100%;
   border-radius: 16px;
@@ -465,32 +355,26 @@ body {
   align-items: center;
   justify-content: center;
 }
-
-/* TikTok vertical videos might look better in 9/16, but we can set max heights */
 #video-preview {
   width: 100%;
   height: 100%;
   max-height: 380px;
   object-fit: contain;
 }
-
 .action-row {
   display: flex;
   flex-direction: column;
   gap: 14px;
   margin-top: 8px;
 }
-
 .btn-action-download {
   text-decoration: none;
   gap: 8px;
 }
-
 .icon-download {
   width: 20px;
   height: 20px;
 }
-
 .btn-secondary {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -505,17 +389,13 @@ body {
   transition: background 0.2s ease, border-color 0.2s ease;
   text-align: center;
 }
-
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.2);
 }
-
 .btn-secondary:active {
   transform: scale(0.99);
 }
-
-/* Footer Styling */
 .app-footer {
   text-align: center;
   display: flex;
@@ -524,26 +404,20 @@ body {
   margin-top: 10px;
   padding-bottom: 20px;
 }
-
 .footer-terms {
   font-size: 0.78rem;
   color: var(--text-muted);
   opacity: 0.55;
   line-height: 1.4;
 }
-
 .copyright {
   font-size: 0.75rem;
   color: var(--text-muted);
   opacity: 0.4;
 }
-
-/* Utility helpers */
 .hidden {
   display: none !important;
 }
-
-/* Entry Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -554,7 +428,6 @@ body {
     transform: translateY(0);
   }
 }
-
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -565,45 +438,35 @@ body {
     transform: translateY(0);
   }
 }
-
-/* Media Queries for responsive screen support */
 @media (max-width: 600px) {
   body {
     padding: 16px;
   }
-
   .app-container {
     gap: 24px;
   }
-
   .logo-text {
     font-size: 2.1rem;
   }
-
   .glass-card {
     padding: 24px 20px;
     border-radius: 20px;
   }
-
   .input-wrapper {
     padding: 4px 4px 4px 12px;
   }
-
   .btn-paste {
     padding: 6px 12px;
     font-size: 0.8rem;
   }
-
   .btn-submit, .btn-secondary {
     padding: 14px 20px;
     font-size: 1rem;
   }
-  
   .preview-container {
     aspect-ratio: auto;
   }
 }
-/* Author Info & Stats */
 .author-info {
   display: flex;
   align-items: center;
@@ -659,7 +522,6 @@ body {
   letter-spacing: 0.05em;
   margin-top: 4px;
 }
-
 @media (max-width: 600px) {
   .video-stats {
     grid-template-columns: repeat(2, 1fr);
@@ -676,9 +538,7 @@ body {
   .author-nickname {
     font-size: 1rem;
   }
-}
-/* iPhone CTA */
-.iphone-cta {
+}.iphone-cta {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -710,4 +570,4 @@ body {
 }
 .cta-desc a:hover {
   text-decoration: underline;
-}
+}

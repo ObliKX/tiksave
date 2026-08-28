@@ -1,22 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // UI Sections
+
   const searchSection = document.getElementById('search-section');
   const statusSection = document.getElementById('status-section');
   const errorSection = document.getElementById('error-section');
   const resultSection = document.getElementById('result-section');
 
-  // Interactive buttons and inputs
   const form = document.getElementById('downloader-form');
   const tiktokUrlInput = document.getElementById('tiktok-url');
   const btnPaste = document.getElementById('btn-paste');
   const btnDownload = document.getElementById('btn-download');
   const btnCloseError = document.getElementById('btn-close-error');
-  
-  // Dynamic messages
+
   const statusMessage = document.getElementById('status-message');
   const errorMessage = document.getElementById('error-message');
-  
-  // Results details
+
   const resultTitle = document.getElementById('result-title');
   const resultQuality = document.getElementById('result-quality');
   const videoPreview = document.getElementById('video-preview');
@@ -25,14 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let statusInterval = null;
 
-  // Paste from clipboard handler
   btnPaste.addEventListener('click', async () => {
     try {
       if (!navigator.clipboard) {
         showError('Your browser does not support automatic clipboard pasting. Please paste manually.');
         return;
       }
-      
+
       const text = await navigator.clipboard.readText();
       if (text) {
         tiktokUrlInput.value = text.trim();
@@ -44,10 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Close Error Banner
   btnCloseError.addEventListener('click', hideError);
 
-  // Form Submit Handler
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const url = tiktokUrlInput.value.trim();
@@ -57,24 +51,20 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // URL scheme check
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       showError('Invalid link. TikTok links must start with http:// or https://');
       return;
     }
 
-    // Basic domain check
     if (!url.includes('tiktok.com')) {
       showError('Please enter a valid TikTok URL (e.g. vm.tiktok.com/... or tiktok.com/@username/video/...)');
       return;
     }
 
-    // Show Loading panel
     hideError();
     toggleSection(searchSection, false);
     toggleSection(statusSection, true);
-    
-    // Rotate processing messages for a premium feel
+
     startStatusRotation();
 
     try {
@@ -91,40 +81,37 @@ document.addEventListener('DOMContentLoaded', () => {
       stopStatusRotation();
 
       if (response.ok && data.success) {
-        // Load video information
+
         resultTitle.textContent = data.title || 'TikTok Video';
         resultQuality.textContent = data.quality || 'HD';
-        
-        // Load author info
+
         if (data.author) {
           document.getElementById('author-avatar').src = data.author.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.author.nickname || 'User') + '&background=000&color=fff';
           document.getElementById('author-nickname').textContent = data.author.nickname || 'Unknown User';
           document.getElementById('author-username').textContent = '@' + (data.author.unique_id || 'user');
         }
-        
-        // Load stats with a formatter
+
         const formatStat = (num) => {
           if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
           if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
           return num;
         };
-        
+
         if (data.stats) {
           document.getElementById('stat-plays').textContent = formatStat(data.stats.plays || 0);
           document.getElementById('stat-likes').textContent = formatStat(data.stats.likes || 0);
           document.getElementById('stat-comments').textContent = formatStat(data.stats.comments || 0);
           document.getElementById('stat-shares').textContent = formatStat(data.stats.shares || 0);
         }
-        
-        // Point preview and download button to the server file link
+
         videoPreview.src = data.downloadUrl;
         btnFileDownload.href = data.downloadUrl;
 
         toggleSection(statusSection, false);
         toggleSection(resultSection, true);
-        videoPreview.load(); // Load video buffer
+        videoPreview.load(); 
       } else {
-        // Display server-returned error
+
         showError(data.error || 'Unable to process this video.');
         toggleSection(statusSection, false);
         toggleSection(searchSection, true);
@@ -139,21 +126,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Reset Handler to process another video
   btnReset.addEventListener('click', () => {
-    // Pause video playback and empty source
+
     videoPreview.pause();
     videoPreview.removeAttribute('src');
     videoPreview.load();
-    
-    // Toggle screens back to main search
+
     tiktokUrlInput.value = '';
     toggleSection(resultSection, false);
     toggleSection(searchSection, true);
     hideError();
   });
 
-  // View state helpers
   function toggleSection(element, show) {
     if (show) {
       element.classList.remove('hidden');
