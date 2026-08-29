@@ -134,6 +134,62 @@
       </section>
 
       
+      <section class="glass-card photo-result-card hidden" id="photo-result-section">
+        <div class="photo-header">
+          <div class="author-info">
+            <img id="photo-author-avatar" src="" alt="Author Avatar" class="author-avatar">
+            <div class="author-details">
+              <h3 id="photo-author-nickname" class="author-nickname">User</h3>
+              <p id="photo-author-username" class="author-username">@username</p>
+            </div>
+          </div>
+          <div class="photo-info">
+            <h2 class="photo-title" id="photo-result-title">TikTok Photo Post</h2>
+            <div class="badge-row">
+              <span class="badge" id="photo-count-badge">4 photos</span>
+              <span class="badge badge-success">Ready</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="photo-stats">
+          <div class="stat-item"><span class="stat-value" id="photo-stat-likes">0</span> <span class="stat-label">Likes</span></div>
+          <div class="stat-item"><span class="stat-value" id="photo-stat-comments">0</span> <span class="stat-label">Comments</span></div>
+          <div class="stat-item"><span class="stat-value" id="photo-stat-shares">0</span> <span class="stat-label">Shares</span></div>
+        </div>
+
+        <div class="photo-grid-container">
+          <div class="photo-grid" id="photo-grid"></div>
+        </div>
+
+        <div class="photo-controls">
+          <div class="selection-info">
+            <span id="photo-selection-text">0 photos selected</span>
+          </div>
+          <div class="control-buttons">
+            <button type="button" class="btn-secondary" id="btn-select-all-photos">
+              Select All
+            </button>
+            <button type="button" class="btn-secondary" id="btn-clear-selection">
+              Clear
+            </button>
+            <button type="button" class="btn-submit" id="btn-download-photos">
+              <svg class="icon-download" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download Selected
+            </button>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button type="button" class="btn-secondary" id="btn-reset-photos">
+            Try Another Link
+          </button>
+        </div>
+      </section>
+
+      
       <section class="iphone-cta">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
