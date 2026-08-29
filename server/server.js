@@ -5,7 +5,6 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const downloadRoutes = require('./routes/download');
 const shortcutRoutes = require('./routes/shortcut');
-const photoRoutes = require('./routes/photos');
 const { startCleanupScheduler } = require('./utils/cleanup');
 
 const app = express();
@@ -32,7 +31,6 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api', downloadRoutes);
 app.use('/api/shortcut', shortcutRoutes);
-app.use('/api/photos', photoRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

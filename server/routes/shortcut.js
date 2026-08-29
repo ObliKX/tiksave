@@ -6,7 +6,6 @@ const path = require('path');
 const fs = require('fs');
 const { resolveAndValidateUrl } = require('../utils/validateUrl');
 const { downloadVideo, activeDownloads } = require('../services/videoService');
-const { detectPostType } = require('../services/photoService');
 
 const recentRequests = new Map();
 const RATE_LIMIT_WINDOW_MS = 10000; 
@@ -80,55 +79,6 @@ setInterval(() => {
     }
   }
 }, 60000).unref();
-
-/**
- * POST /api/shortcut/info
- * Detect whether a TikTok post is a video or photo (for Shortcut decision-making)
- */
-router.post('/info', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const expectedKey = process.env.SHORTCUT_API_KEY;
-
-  if (!expectedKey) {
-    console.error('[Shortcut API] SHORTCUT_API_KEY is not configured on the server.');
-    return res.status(500).json({ success: false, error: 'Server misconfiguration.' });
-  }
-
-  if (!authHeader || authHeader !== `Bearer ${expectedKey}`) {
-    return res.status(401).json({ success: false, error: 'Unauthorized. Invalid API Key.' });
-  }
-
-  const { url } = req.body;
-
-  if (!url || typeof url !== 'string') {
-    return res.status(400).json({ success: false, error: 'Please provide a valid TikTok URL.' });
-  }
-
-  try {
-    const resolvedUrl = await resolveAndValidateUrl(url.trim());
-    const typeInfo = await detectPostType(resolvedUrl);
-
-    if (typeInfo.type === 'photo') {
-      return res.json({
-        success: true,
-        type: 'photo',
-        count: typeInfo.count || 0
-      });
-    } else {
-      return res.json({
-        success: true,
-        type: 'video'
-      });
-    }
-
-  } catch (error) {
-    console.error('[Shortcut API] Error detecting post type:', error.message);
-    return res.status(400).json({
-      success: false,
-      error: 'Unable to determine post type. Please verify the link.'
-    });
-  }
-});
 
 router.get('/install', (req, res) => {
   const { key } = req.query;
