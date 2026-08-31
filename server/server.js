@@ -5,6 +5,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const downloadRoutes = require('./routes/download');
 const shortcutRoutes = require('./routes/shortcut');
+const photosRoutes = require('./routes/photos');
 const { startCleanupScheduler } = require('./utils/cleanup');
 
 const app = express();
@@ -30,6 +31,7 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api', downloadRoutes);
+app.use('/api/photos', photosRoutes);
 app.use('/api/shortcut', shortcutRoutes);
 
 app.get('/api/health', (req, res) => {

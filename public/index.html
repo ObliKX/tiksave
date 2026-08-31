@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TikSave - Download TikTok Videos in HD</title>
-  <meta name="description" content="A simple, fast, and secure personal-use video downloader for TikTok. Save your own TikTok videos in HD quality without advertisements.">
+  <title>TikSave - Download TikTok Videos and Photos</title>
+  <meta name="description" content="A simple, fast, and secure personal-use TikTok video and photo downloader.">
   
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
         </svg>
         <span class="logo-text">Tik<span class="logo-highlight">Save</span></span>
       </div>
-      <p class="subtitle">Download your videos in HDdddddd</p>
+      <p class="subtitle">Download your TikTok videos and photo posts</p>
     </header>
 
     <main class="main-content">
@@ -44,8 +44,8 @@
             </span>
             <input 
               type="url" 
-              id="tiktok-url" 
-              placeholder="Paste TikTok video link..." 
+              id="tiktok-url"              placeholder="Paste TikTok link..."
+
               required 
               autocomplete="off"
             >
@@ -55,7 +55,7 @@
           </div>
           
           <button type="submit" class="btn-submit" id="btn-download">
-            <span class="btn-text">Download Video</span>
+            <span class="btn-text">Process Link</span>
           </button>
         </form>
 
@@ -128,7 +128,7 @@
             Download HD
           </a>
           <button type="button" class="btn-secondary" id="btn-reset">
-            Download Another Video
+            Download Another Link
           </button>
         </div>
       </section>
@@ -163,8 +163,7 @@
         </div>
 
         <div class="photo-controls">
-          <div class="selection-info">
-            <span id="photo-selection-text">0 photos selected</span>
+          <div class="selection-info">              <span id="photo-selection-text">0 photos selected</span>
           </div>
           <div class="control-buttons">
             <button type="button" class="btn-secondary" id="btn-select-all-photos">

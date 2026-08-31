@@ -1,12 +1,17 @@
 const express = require('express');
-const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const axios = require('axios');
 const router = express.Router();
 
 const { resolveAndValidateUrl } = require('../utils/validateUrl');
-const { downloadVideo, activeDownloads, SERVER_SECRET } = require('../services/videoService');
+const {
+  downloadVideo,
+  fetchProviderResult,
+  activeDownloads,
+  SERVER_SECRET,
+  isAllowedMediaUrl
+} = require('../services/videoService');
+const { createPhotoInfo } = require('../services/photoService');
 
 router.post('/download', async (req, res) => {
   const { url } = req.body;
@@ -22,8 +27,13 @@ router.post('/download', async (req, res) => {
 
     const resolvedUrl = await resolveAndValidateUrl(url.trim());
 
-    const result = await downloadVideo(resolvedUrl);
+    const media = await fetchProviderResult(resolvedUrl);
 
+    if (media.type === 'photo') {
+      return res.json(createPhotoInfo(media, resolvedUrl));
+    }
+
+    const result = await downloadVideo(resolvedUrl, media);
     return res.json(result);
 
   } catch (error) {
@@ -40,6 +50,33 @@ router.post('/download', async (req, res) => {
       success: false,
       error: 'Unable to process this video. Please verify that the link is correct and the video is public.'
     });
+  }
+});
+
+// Local equivalent of the Netlify Edge Function. Netlify handles this path
+// with netlify/edge-functions/proxy.js; this route keeps local development safe.
+router.get('/proxy-download', async (req, res) => {
+  const { p, s } = req.query;
+  if (!p || !s || typeof p !== 'string' || typeof s !== 'string') {
+    return res.status(400).json({ success: false, error: 'Missing signed download parameters.' });
+  }
+
+  try {
+    const expectedSignature = crypto.createHmac('sha256', SERVER_SECRET).update(p).digest('hex');
+    if (s.length !== expectedSignature.length || !crypto.timingSafeEqual(Buffer.from(s), Buffer.from(expectedSignature))) {
+      return res.status(403).json({ success: false, error: 'Invalid or tampered download link.' });
+    }
+
+    const payload = JSON.parse(Buffer.from(p, 'base64url').toString('utf8'));
+    if (!payload.e || Date.now() > payload.e || payload.z || !isAllowedMediaUrl(payload.u)) {
+      return res.status(403).json({ success: false, error: 'Download link is invalid or expired.' });
+    }
+
+    // Redirecting preserves streaming and avoids buffering media in the Node process.
+    return res.redirect(302, payload.u);
+  } catch (error) {
+    console.error('[Proxy] Error validating signed media link:', error.message);
+    return res.status(400).json({ success: false, error: 'Unable to stream this download.' });
   }
 });
 
@@ -61,7 +98,7 @@ router.get('/file/secure', async (req, res) => {
     const payload = `${directUrl}|${title}`;
     const expectedSignature = crypto.createHmac('sha256', SERVER_SECRET).update(payload).digest('hex');
 
-    if (signature !== expectedSignature) {
+    if (typeof signature !== 'string' || signature.length !== expectedSignature.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
       return res.status(403).json({
         success: false,
         error: 'Invalid or tampered signature on download request.'
@@ -80,7 +117,7 @@ router.get('/file/secure', async (req, res) => {
       }
     }
 
-    console.log(`[Proxy] Redirecting video stateless-ly to avoid 6MB Lambda limit: ${directUrl}`);
+    console.log(`[Proxy] Redirecting stateless media download to avoid serverless response limits: ${directUrl}`);
 
     return res.redirect(302, directUrl);
 
@@ -122,7 +159,8 @@ router.get('/file/:id', (req, res) => {
     });
   }
 
-  const downloadName = `${title}.mp4`;
+  const downloadName = record.filename || `${title || 'tiktok_video'}.mp4`;
+  if (record.mimeType) res.type(record.mimeType);
 
   res.download(filePath, downloadName, (err) => {
     if (err) {

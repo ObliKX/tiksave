@@ -5,97 +5,98 @@ const axios = require('axios');
 const { tiktokdl } = require('@tobyg74/tiktok-api-dl');
 
 const DOWNLOADS_DIR = path.join(__dirname, '..', '..', 'downloads');
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const MEDIA_HOST_REGEX = /^(?:[a-zA-Z0-9-]+\.)*(?:tiktokcdn\.com|tiktokcdn-us\.com|tiktokcdn-eu\.com|byteoversea\.com|ibyteimg\.com|ibytedtos\.com|muscdn\.com|musical\.ly)$/i;
+const MOCK_MEDIA_URL = 'https://www.w3schools.com/html/mov_bbb.mp4';
 
-// Ensure downloads directory exists
 if (!fs.existsSync(DOWNLOADS_DIR)) {
   fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 }
 
-// In-memory registry of active downloads to map fileId -> file details
 const activeDownloads = new Map();
-
-// Secure signature key for stateless downloads (Netlify)
 const SERVER_SECRET = process.env.SERVER_SECRET || crypto.randomBytes(32).toString('hex');
 
-/**
- * Generates a signed, short-lived download token for the Edge Function proxy.
- */
-function generateSignedUrl(directUrl) {
-  // Token expires in 120 seconds (2 minutes)
-  const payloadObj = {
-    u: directUrl,
-    e: Date.now() + 120 * 1000
-  };
-  
-  // Base64URL encode the JSON payload
-  const payload = Buffer.from(JSON.stringify(payloadObj)).toString('base64url');
-  
-  // Sign the payload
-  const signature = crypto.createHmac('sha256', SERVER_SECRET).update(payload).digest('hex');
-  
-  return `/api/proxy-download?p=${payload}&s=${signature}`;
-}
-
-/**
- * Helper to download a video stream from a URL and save it locally.
- */
-async function saveVideoFromUrl(url, fileId) {
-  const outputPath = path.join(DOWNLOADS_DIR, `${fileId}.mp4`);
-  const writer = fs.createWriteStream(outputPath);
-
-  const response = await axios({
-    method: 'get',
-    url: url,
-    responseType: 'stream',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    }
-  });
-
-  response.data.pipe(writer);
-
-  return new Promise((resolve, reject) => {
-    writer.on('finish', () => resolve(outputPath));
-    writer.on('error', (err) => {
-      // Clean up partial file on error
-      if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-      reject(err);
-    });
-  });
-}
-
-/**
- * Sanitize titles for file downloads
- */
-function sanitizeFilename(name) {
-  return name
-    .replace(/[\x00-\x1F\x7F\/\\:\*\?\"<>\|]/g, '')
-    .trim()
-    .substring(0, 100) || 'tiktok_video';
-}
-
-/**
- * Purges expired entries from the activeDownloads memory registry
- */
-function purgeExpiredRegistry() {
-  const now = Date.now();
-  const threshold = 15 * 60 * 1000; // 15 minutes
-  for (const [key, value] of activeDownloads.entries()) {
-    if (now - value.createdAt > threshold) {
-      activeDownloads.delete(key);
-    }
+function isAllowedMediaUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+      (MEDIA_HOST_REGEX.test(parsed.hostname) || value === MOCK_MEDIA_URL);
+  } catch (_error) {
+    return false;
   }
 }
 
-/**
- * Downloads TikTok video using the configured provider.
- * @param {string} videoUrl Resolved long TikTok URL
- * @returns {Promise<object>} Metadata and download link details
- */
-async function downloadVideo(videoUrl) {
-  const provider = (process.env.TIKTOK_PROVIDER || '').trim().toLowerCase();
+function encodePayload(payload) {
+  return Buffer.from(JSON.stringify(payload)).toString('base64url');
+}
 
-  // 1. Strict Configuration Validation
+function signPayload(payload) {
+  return crypto.createHmac('sha256', SERVER_SECRET).update(payload).digest('hex');
+}
+
+function generateSignedUrl(directUrl, options = {}) {
+  const payload = encodePayload({
+    u: directUrl,
+    e: Date.now() + 120 * 1000,
+    ...(options.filename ? { n: options.filename } : {}),
+    ...(options.mimeType ? { m: options.mimeType } : {})
+  });
+
+  return `/api/proxy-download?p=${payload}&s=${signPayload(payload)}`;
+}
+
+function generateSignedZipUrl(items, filename) {
+  const payload = encodePayload({
+    z: true,
+    items,
+    n: filename,
+    e: Date.now() + 120 * 1000
+  });
+
+  return `/api/proxy-download?p=${payload}&s=${signPayload(payload)}`;
+}
+
+function sanitizeFilename(name) {
+  return String(name || '')
+    .replace(/[\x00-\x1F\x7F\/\\:\*\?\"<>\|]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 100) || 'tiktok_download';
+}
+
+function normalizeUrlList(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object') {
+        return item.url || item.url_list?.[0] || item.urlList?.[0] || item.display_image?.url_list?.[0] || '';
+      }
+      return '';
+    })
+    .filter((url) => typeof url === 'string' && isAllowedMediaUrl(url));
+}
+
+function normalizeAuthor(author = {}) {
+  const username = author.unique_id || author.username || author.uniqueId || 'user';
+  return {
+    nickname: author.nickname || author.displayName || 'Unknown',
+    unique_id: username.replace(/^@/, ''),
+    avatar: author.avatar || author.avatarMedium?.[0] || author.avatarThumb?.[0] || ''
+  };
+}
+
+function normalizeStats(stats = {}) {
+  return {
+    plays: stats.play_count ?? stats.playCount ?? 0,
+    likes: stats.digg_count ?? stats.diggCount ?? stats.likeCount ?? 0,
+    comments: stats.comment_count ?? stats.commentCount ?? 0,
+    shares: stats.share_count ?? stats.shareCount ?? 0
+  };
+}
+
+function validateProvider() {
+  const provider = (process.env.TIKTOK_PROVIDER || '').trim().toLowerCase();
   if (!provider) {
     throw new Error('CONFIG_ERROR: TIKTOK_PROVIDER environment variable is not configured.');
   }
@@ -104,163 +105,206 @@ async function downloadVideo(videoUrl) {
   if (!validProviders.includes(provider)) {
     throw new Error(`CONFIG_ERROR: Configured TIKTOK_PROVIDER "${provider}" is invalid. Choose from: tikwm, tiktok-api-dl, mock.`);
   }
+  return provider;
+}
 
-  // Purge old mappings from memory
-  purgeExpiredRegistry();
+/**
+ * Fetches and normalizes one TikTok post from the configured provider.
+ * This is intentionally shared by videoService and photoService so detection
+ * and download never maintain separate scraping implementations.
+ */
+async function fetchProviderResult(videoUrl) {
+  const provider = validateProvider();
 
-  const fileId = crypto.randomBytes(16).toString('hex');
-  let title = 'TikTok Video';
-  let directVideoUrl = '';
-  let quality = 'HD';
-  let author = { nickname: 'Unknown', unique_id: 'user', avatar: '' };
-  let stats = { plays: 0, likes: 0, comments: 0, shares: 0 };
-
-  // 2. Execute Provider Logic
   if (provider === 'tikwm') {
-    const tikwmUrl = 'https://www.tikwm.com/api/';
-    const apiKey = process.env.TIKWM_API_KEY;
-
     try {
-      const apiResponse = await axios.post(
-        tikwmUrl,
-        new URLSearchParams({
-          url: videoUrl,
-          hd: '1'
-        }).toString(),
+      const response = await axios.post(
+        'https://www.tikwm.com/api/',
+        new URLSearchParams({ url: videoUrl, hd: '1' }).toString(),
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
+            'User-Agent': USER_AGENT
+          },
+          timeout: 20000
         }
       );
 
-      const resData = apiResponse.data;
-      if (!resData || resData.code !== 0 || !resData.data) {
-        throw new Error(resData.msg || 'Invalid response from TikWM API');
+      const body = response.data;
+      if (!body || body.code !== 0 || !body.data) {
+        throw new Error(body?.msg || 'Invalid response from TikWM API');
       }
 
-      const info = resData.data;
-      title = info.title || `TikTok Video by @${info.author?.unique_id || 'user'}`;
-      directVideoUrl = info.hdplay || info.play;
-      
-      if (info.author) {
-        author = {
-          nickname: info.author.nickname || 'Unknown',
-          unique_id: info.author.unique_id || 'user',
-          avatar: info.author.avatar || ''
-        };
-      }
-      
-      stats = {
-        plays: info.play_count || 0,
-        likes: info.digg_count || 0,
-        comments: info.comment_count || 0,
-        shares: info.share_count || 0
+      const info = body.data;
+      const photoUrls = normalizeUrlList(info.images || info.image_post_info?.images);
+      const author = normalizeAuthor(info.author);
+      return {
+        type: photoUrls.length > 0 ? 'photo' : 'video',
+        title: info.title || `TikTok Video by @${author.unique_id}`,
+        author,
+        stats: normalizeStats(info),
+        quality: info.hdplay ? 'HD' : 'SD',
+        directVideoUrl: info.hdplay || info.play || '',
+        photoUrls
       };
-
-      if (!directVideoUrl) {
-        throw new Error('No download links returned by TikWM');
-      }
-      quality = info.hdplay ? 'HD' : 'SD';
-
-    } catch (err) {
-      console.error('[VideoService] TikWM processing failed:', err.message);
-      throw new Error(`Failed to fetch video using TikWM: ${err.message}`);
+    } catch (error) {
+      console.error('[VideoService] TikWM processing failed:', error.message);
+      throw new Error(`Failed to fetch TikTok media using TikWM: ${error.message}`);
     }
+  }
 
-  } else if (provider === 'tiktok-api-dl') {
+  if (provider === 'tiktok-api-dl') {
     try {
+      if (typeof tiktokdl !== 'function') {
+        throw new Error('The installed TikTok provider does not expose a downloader.');
+      }
+
       const result = await tiktokdl(videoUrl);
       if (result.status !== 'success' || !result.result) {
-        throw new Error(result.message || 'Scraper failed to extract video info');
+        throw new Error(result.message || 'Scraper failed to extract post info');
       }
 
       const info = result.result;
-      title = info.description || 'TikTok Scraped Video';
-      
-      if (info.author) {
-        author = {
-          nickname: info.author.nickname || 'Unknown',
-          unique_id: info.author.username || info.author.unique_id || 'user',
-          avatar: info.author.avatar || ''
-        };
-      }
-      
-      if (info.statistics) {
-        stats = {
-          plays: info.statistics.playCount || 0,
-          likes: info.statistics.diggCount || 0,
-          comments: info.statistics.commentCount || 0,
-          shares: info.statistics.shareCount || 0
-        };
-      }
-      
-      if (info.video && Array.isArray(info.video) && info.video.length > 0) {
-        directVideoUrl = info.video[0];
-      } else if (typeof info.video === 'string') {
-        directVideoUrl = info.video;
-      } else if (info.video && info.video.no_watermark) {
-        directVideoUrl = info.video.no_watermark;
-      }
+      const photoUrls = normalizeUrlList(info.images || info.imagePost?.images);
+      const author = normalizeAuthor(info.author);
+      const video = info.video;
+      const videoUrls = typeof video === 'string'
+        ? [video]
+        : normalizeUrlList(video?.playAddr || video?.downloadAddr || video?.no_watermark);
 
-      if (!directVideoUrl) {
-        throw new Error('No video links found in scraping result.');
-      }
-      quality = 'HD';
-    } catch (err) {
-      console.error('[VideoService] tiktok-api-dl scraper failed:', err.message);
-      throw new Error(`Failed to scrape video using local library: ${err.message}`);
+      return {
+        type: photoUrls.length > 0 || info.type === 'image' ? 'photo' : 'video',
+        title: info.desc || info.description || 'TikTok Video',
+        author,
+        stats: normalizeStats(info.statistics || info.stats),
+        quality: 'HD',
+        directVideoUrl: videoUrls[0] || '',
+        photoUrls
+      };
+    } catch (error) {
+      console.error('[VideoService] tiktok-api-dl scraper failed:', error.message);
+      throw new Error(`Failed to scrape TikTok media using local provider: ${error.message}`);
     }
-
-  } else if (provider === 'mock') {
-    directVideoUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
-    title = 'Mock Test Video (Big Buck Bunny)';
-    quality = 'HD (Mock)';
-    author = { nickname: 'Blender Foundation', unique_id: 'blender', avatar: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Blender_logo_no_text.svg/512px-Blender_logo_no_text.svg.png' };
-    stats = { plays: 1000000, likes: 50000, comments: 200, shares: 1000 };
   }
 
-  // If running in Netlify (serverless environment), return a stateless URL via Edge Function
+  // Mock remains video-only and is never used to fabricate photo results.
+  return {
+    type: 'video',
+    title: 'Mock Test Video (Big Buck Bunny)',
+    quality: 'HD (Mock)',
+    author: {
+      nickname: 'Blender Foundation',
+      unique_id: 'blender',
+      avatar: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Blender_logo_no_text.svg/512px-Blender_logo_no_text.svg.png'
+    },
+    stats: { plays: 1000000, likes: 50000, comments: 200, shares: 1000 },
+    directVideoUrl: MOCK_MEDIA_URL,
+    photoUrls: []
+  };
+}
+
+async function saveVideoFromUrl(url, fileId) {
+  if (!isAllowedMediaUrl(url)) {
+    throw new Error('Provider returned an unauthorized media URL.');
+  }
+
+  const outputPath = path.join(DOWNLOADS_DIR, `${fileId}.mp4`);
+  const writer = fs.createWriteStream(outputPath);
+  let response;
+
+  try {
+    response = await axios({
+      method: 'get',
+      url,
+      responseType: 'stream',
+      timeout: 30000,
+      headers: { 'User-Agent': USER_AGENT }
+    });
+    response.data.pipe(writer);
+  } catch (error) {
+    writer.destroy();
+    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    throw error;
+  }
+
+  return new Promise((resolve, reject) => {
+    writer.on('finish', () => resolve(outputPath));
+    writer.on('error', (error) => {
+      if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+      reject(error);
+    });
+    response.data.on('error', (error) => {
+      writer.destroy();
+      if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+      reject(error);
+    });
+  });
+}
+
+function purgeExpiredRegistry() {
+  const threshold = 15 * 60 * 1000;
+  const now = Date.now();
+  for (const [key, value] of activeDownloads.entries()) {
+    if (now - value.createdAt > threshold) activeDownloads.delete(key);
+  }
+}
+
+async function downloadVideo(videoUrl, providerResult) {
+  purgeExpiredRegistry();
+  const media = providerResult || await fetchProviderResult(videoUrl);
+
+  if (media.type !== 'video' || !media.directVideoUrl) {
+    throw new Error('PHOTO_POST: This TikTok link is a photo post.');
+  }
+
+  const fileId = crypto.randomBytes(16).toString('hex');
+
   if (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    console.log(`[VideoService] Netlify detected. Generating stateless secure Edge Function download link.`);
     return {
       success: true,
-      title: title,
-      quality: quality,
-      author: author,
-      stats: stats,
-      downloadUrl: generateSignedUrl(directVideoUrl)
+      type: 'video',
+      title: media.title,
+      quality: media.quality,
+      author: media.author,
+      stats: media.stats,
+      downloadUrl: generateSignedUrl(media.directVideoUrl, {
+        filename: `${sanitizeFilename(media.title)}.mp4`,
+        mimeType: 'video/mp4'
+      })
     };
   }
 
-  // 3. Download the MP4 to the local downloads folder (Local/Server Mode)
-  console.log(`[VideoService] Downloading MP4 stream from: ${directVideoUrl}`);
-  const savedPath = await saveVideoFromUrl(directVideoUrl, fileId);
-
-  // 4. Save metadata to active download list for serving via file route
-  const sanitizedTitle = sanitizeFilename(title);
+  const savedPath = await saveVideoFromUrl(media.directVideoUrl, fileId);
+  const filename = `${sanitizeFilename(media.title)}.mp4`;
   activeDownloads.set(fileId, {
     filePath: savedPath,
-    title: sanitizedTitle,
+    filename,
+    mimeType: 'video/mp4',
+    title: sanitizeFilename(media.title),
     createdAt: Date.now()
   });
 
   return {
     success: true,
-    title: title,
-    quality: quality,
-    author: author,
-    stats: stats,
+    type: 'video',
+    title: media.title,
+    quality: media.quality,
+    author: media.author,
+    stats: media.stats,
     downloadUrl: `/api/file/${fileId}`
   };
 }
 
 module.exports = {
   downloadVideo,
+  fetchProviderResult,
   activeDownloads,
   sanitizeFilename,
   purgeExpiredRegistry,
   SERVER_SECRET,
-  generateSignedUrl
+  generateSignedUrl,
+  generateSignedZipUrl,
+  isAllowedMediaUrl,
+  DOWNLOADS_DIR,
+  USER_AGENT
 };
