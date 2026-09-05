@@ -18,6 +18,7 @@ function authenticate(req, res) {
     return false;
   }
   if (!authHeader || authHeader !== `Bearer ${expectedKey}`) {
+    console.warn(`[Shortcut API] Authentication failed: ${!authHeader ? 'missing Authorization header' : 'invalid API key'}.`);
     res.status(401).json({ success: false, error: 'Unauthorized. Invalid API Key.' });
     return false;
   }
@@ -27,7 +28,10 @@ function authenticate(req, res) {
 function checkShortcutRateLimit(url, operation) {
   const key = `${operation}:${url}`;
   const lastRequestTime = recentRequests.get(key);
-  if (lastRequestTime && Date.now() - lastRequestTime < RATE_LIMIT_WINDOW_MS) return false;
+  if (lastRequestTime && Date.now() - lastRequestTime < RATE_LIMIT_WINDOW_MS) {
+    console.warn(`[Shortcut API] Rate limit hit for ${operation}.`);
+    return false;
+  }
   recentRequests.set(key, Date.now());
   return true;
 }
@@ -41,8 +45,16 @@ function readShortcutUrl(req, res) {
   return url.trim();
 }
 
+const RESOLUTION_ERROR_CODES = new Set(['INVALID_URL', 'RESOLUTION_FAILED', 'SSRF_BLOCKED', 'REDIRECT_INVALID', 'REDIRECT_LOOP', 'REDIRECT_LIMIT']);
+
 function shortcutError(res, error) {
-  console.error('[Shortcut API] Error processing request:', error.message);
+  console.error(`[Shortcut API] Error processing request [${error.code || 'UNCLASSIFIED'}]:`, error.message);
+  if (error.cause && error.cause.message) {
+    console.error(`[Shortcut API] Underlying cause [${error.code || 'UNCLASSIFIED'}]:`, error.cause.message);
+  }
+  if (RESOLUTION_ERROR_CODES.has(error.code)) {
+    console.error('[Shortcut API] Failure stage: short-link redirect resolution.');
+  }
   if (error.message.startsWith('CONFIG_ERROR')) {
     return res.status(500).json({ success: false, type: 'unknown', error: 'Server misconfiguration.' });
   }
@@ -154,7 +166,7 @@ router.post('/download', async (req, res) => {
     return res.redirect(302, result.downloadUrl);
 
   } catch (error) {
-    console.error('[Shortcut API] Error processing video request:', error.message);
+    console.error(`[Shortcut API] Error processing video request [${error.code || 'UNCLASSIFIED'}]:`, error.message);
 
     recentRequests.delete(urlHash);
 

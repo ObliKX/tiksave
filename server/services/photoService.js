@@ -10,7 +10,8 @@ const {
   sanitizeFilename,
   generateSignedUrl,
   generateSignedZipUrl,
-  isAllowedMediaUrl
+  isAllowedMediaUrl,
+  guardAgainstStalledStream
 } = require('./videoService');
 
 const MAX_PHOTOS = 35;
@@ -105,6 +106,7 @@ async function savePhotoFromUrl(url, fileId, index) {
       maxContentLength: MAX_PHOTO_BYTES,
       headers: { 'User-Agent': USER_AGENT }
     });
+    guardAgainstStalledStream(response.data, new URL(url).hostname);
 
     const contentType = String(response.headers['content-type'] || '').split(';')[0].toLowerCase();
     if (contentType && !contentType.startsWith('image/')) {

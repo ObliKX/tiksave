@@ -8,6 +8,7 @@ const DOWNLOADS_DIR = path.join(__dirname, '..', '..', 'downloads');
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const MEDIA_HOST_REGEX = /^(?:[a-zA-Z0-9-]+\.)*(?:tiktokcdn\.com|tiktokcdn-us\.com|tiktokcdn-eu\.com|byteoversea\.com|ibyteimg\.com|ibytedtos\.com|muscdn\.com|musical\.ly)$/i;
 const MOCK_MEDIA_URL = 'https://www.w3schools.com/html/mov_bbb.mp4';
+const STALL_TIMEOUT_MS = 20000;
 
 if (!fs.existsSync(DOWNLOADS_DIR)) {
   fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
@@ -203,11 +204,34 @@ async function fetchProviderResult(videoUrl) {
   };
 }
 
+// Axios `timeout` only covers the period until response headers arrive. A body
+// stream that stops sending data would otherwise hang the request forever, so
+// abort it when no data arrives for STALL_TIMEOUT_MS and log which stage
+// failed. Slow-but-flowing downloads are unaffected.
+function guardAgainstStalledStream(stream, sourceLabel) {
+  let lastActivity = Date.now();
+  const timer = setInterval(() => {
+    if (Date.now() - lastActivity > STALL_TIMEOUT_MS) {
+      clearInterval(timer);
+      console.error(`[VideoService] Media stream from ${sourceLabel} stalled (no data for ${STALL_TIMEOUT_MS / 1000}s); aborting.`);
+      stream.destroy(new Error(`Media stream from ${sourceLabel} stalled and was aborted.`));
+    }
+  }, 5000);
+  timer.unref?.();
+  const stop = () => clearInterval(timer);
+  stream.on('data', () => { lastActivity = Date.now(); });
+  stream.once('end', stop);
+  stream.once('error', stop);
+  stream.once('close', stop);
+  return timer;
+}
+
 async function saveVideoFromUrl(url, fileId) {
   if (!isAllowedMediaUrl(url)) {
     throw new Error('Provider returned an unauthorized media URL.');
   }
 
+  const sourceHost = new URL(url).hostname;
   const outputPath = path.join(DOWNLOADS_DIR, `${fileId}.mp4`);
   const writer = fs.createWriteStream(outputPath);
   let response;
@@ -220,6 +244,7 @@ async function saveVideoFromUrl(url, fileId) {
       timeout: 30000,
       headers: { 'User-Agent': USER_AGENT }
     });
+    guardAgainstStalledStream(response.data, sourceHost);
     response.data.pipe(writer);
   } catch (error) {
     writer.destroy();
@@ -305,6 +330,7 @@ module.exports = {
   generateSignedUrl,
   generateSignedZipUrl,
   isAllowedMediaUrl,
+  guardAgainstStalledStream,
   DOWNLOADS_DIR,
   USER_AGENT
 };
